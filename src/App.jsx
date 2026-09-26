@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 export default function App() {
+  const [hasEnteredWarzone, setHasEnteredWarzone] = useState(false);
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [timer, setTimer] = useState(5);
@@ -22,7 +23,6 @@ export default function App() {
       ? import.meta.env.BASE_URL.replace(/\/$/, '')
       : '';
 
-  // Audio files located in images folder
   const audioTracks = {
     bg: `${publicPrefix}/images/bg.mp3`,
     bday: `${publicPrefix}/images/bday.mp3`,
@@ -41,42 +41,48 @@ export default function App() {
     { src: `${publicPrefix}/images/n5.png`, fallback: 'images/n5.png', title: 'MISSION ARCHIVE 05 // QUEEN OF MIDSTEIN' },
   ];
 
-  // Mobile-ready audio initializer
+  // Try immediate autoplay on page load/refresh
   useEffect(() => {
-    const playBg = () => {
-      if (bgAudioRef.current && !isGiftModalOpen) {
-        bgAudioRef.current.volume = 0.9;
-        bgAudioRef.current.play().catch(() => {});
-      }
-    };
+    const bgAudio = bgAudioRef.current;
+    if (!bgAudio) return;
 
-    playBg();
+    bgAudio.volume = 1.0;
+    const initialPromise = bgAudio.play();
+    if (initialPromise !== undefined) {
+      initialPromise
+        .then(() => {
+          // Autoplay permitted by browser policy
+          setHasEnteredWarzone(true);
+        })
+        .catch(() => {
+          // Autoplay blocked by browser policy; wait for entry click
+        });
+    }
+  }, []);
 
-    const unlockOnGesture = () => {
-      playBg();
-      window.removeEventListener('click', unlockOnGesture);
-      window.removeEventListener('touchstart', unlockOnGesture);
-    };
+  // Deploy Operative Handler: Engages Audio
+  const handleDeployToBattle = () => {
+    setHasEnteredWarzone(true);
+    if (bgAudioRef.current) {
+      bgAudioRef.current.currentTime = 0;
+      bgAudioRef.current.volume = 1.0;
+      bgAudioRef.current.muted = false;
+      bgAudioRef.current.play().catch(() => {});
+    }
+  };
 
-    window.addEventListener('click', unlockOnGesture);
-    window.addEventListener('touchstart', unlockOnGesture);
-
-    return () => {
-      window.removeEventListener('click', unlockOnGesture);
-      window.removeEventListener('touchstart', unlockOnGesture);
-    };
-  }, [isGiftModalOpen]);
-
-  // Periodic 1-2 bullet sniper fire every 4.2 seconds
+  // Periodic bullet streaks
   useEffect(() => {
+    if (!hasEnteredWarzone) return;
     const bulletInterval = setInterval(() => {
       setBulletWave((prev) => prev + 1);
-    }, 4200);
+    }, 2900);
     return () => clearInterval(bulletInterval);
-  }, []);
+  }, [hasEnteredWarzone]);
 
   // 5-second countdown timer
   useEffect(() => {
+    if (!hasEnteredWarzone) return;
     const cd = setInterval(() => {
       setTimer((prev) => {
         if (prev <= 1) {
@@ -91,7 +97,7 @@ export default function App() {
       });
     }, 1000);
     return () => clearInterval(cd);
-  }, []);
+  }, [hasEnteredWarzone]);
 
   // Modal slideshow rotation
   useEffect(() => {
@@ -99,7 +105,7 @@ export default function App() {
     const interval = setInterval(() => {
       setActivePhotoIdx((prev) => (prev + 1) % gallery.length);
       setBlastKey((k) => k + 1);
-    }, 3400);
+    }, 3200);
     return () => clearInterval(interval);
   }, [isGiftModalOpen, gallery.length]);
 
@@ -112,6 +118,7 @@ export default function App() {
     if (bdayAudioRef.current) {
       bdayAudioRef.current.currentTime = 0;
       bdayAudioRef.current.volume = 1.0;
+      bdayAudioRef.current.muted = false;
       bdayAudioRef.current.play().catch(() => {});
     }
     setIsGiftModalOpen(true);
@@ -126,7 +133,8 @@ export default function App() {
     }
     if (bgAudioRef.current) {
       bgAudioRef.current.currentTime = 0;
-      bgAudioRef.current.volume = 0.9;
+      bgAudioRef.current.volume = 1.0;
+      bgAudioRef.current.muted = false;
       bgAudioRef.current.play().catch(() => {});
     }
     setIsGiftModalOpen(false);
@@ -162,34 +170,35 @@ export default function App() {
   return (
     <div style={css.page}>
       {/* Audio Engine */}
-      <audio ref={bgAudioRef} src={audioTracks.bg} preload="auto" loop playsInline />
-      <audio ref={bdayAudioRef} src={audioTracks.bday} preload="auto" loop playsInline />
+      <audio
+        ref={bgAudioRef}
+        src={audioTracks.bg}
+        preload="auto"
+        loop
+        playsInline
+      />
+      <audio
+        ref={bdayAudioRef}
+        src={audioTracks.bday}
+        preload="auto"
+        loop
+        playsInline
+      />
 
       <style>{`
-        /* Dynamic Dual Bullet Streak System */
         @keyframes sniperTracer {
-          0% {
-            transform: translateX(-20vw) scaleY(1);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(120vw) scaleY(1.4);
-            opacity: 0;
-          }
+          0% { transform: translateX(-30vw) scaleY(1); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateX(130vw) scaleY(1.4); opacity: 0; }
         }
 
         @keyframes dynamicWarplaneRoute {
-          0% { transform: translate(-12vw, 6vh) rotate(8deg) scale(0.9); }
+          0% { transform: translate(-15vw, 6vh) rotate(8deg) scale(0.9); }
           25% { transform: translate(35vw, 36vh) rotate(-7deg) scale(1.08); }
           50% { transform: translate(68vw, 12vh) rotate(10deg) scale(0.92); }
           75% { transform: translate(88vw, 46vh) rotate(-8deg) scale(1.1); }
-          100% { transform: translate(116vw, 8vh) rotate(6deg) scale(0.9); }
+          100% { transform: translate(118vw, 8vh) rotate(6deg) scale(0.9); }
         }
 
         @keyframes pulseBloodRed {
@@ -204,18 +213,12 @@ export default function App() {
         }
 
         @keyframes bounceAirdropCrate {
-          0%, 100% {
-            transform: translateY(0px) scale(1);
-            filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.7));
-          }
-          50% {
-            transform: translateY(-18px) scale(1.05);
-            filter: drop-shadow(0 0 45px rgba(245, 158, 11, 0.95));
-          }
+          0%, 100% { transform: translateY(0px) scale(1); filter: drop-shadow(0 0 22px rgba(239, 68, 68, 0.8)); }
+          50% { transform: translateY(-18px) scale(1.06); filter: drop-shadow(0 0 50px rgba(245, 158, 11, 0.95)); }
         }
 
         @keyframes popModalIn {
-          0% { transform: scale(0.75); opacity: 0; }
+          0% { transform: scale(0.72); opacity: 0; }
           60% { transform: scale(1.03); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
@@ -232,27 +235,38 @@ export default function App() {
         }
 
         @keyframes petalBloomScatter {
-          0% { transform: translate(0, 0) scale(0.4) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 4px #f43f5e); }
-          50% { transform: translate(var(--fx), var(--fy)) scale(1.5) rotate(180deg); opacity: 1; filter: drop-shadow(0 0 16px #fda4af); }
+          0% { transform: translate(0, 0) scale(0.4) rotate(0deg); opacity: 1; }
+          50% { transform: translate(var(--fx), var(--fy)) scale(1.5) rotate(180deg); opacity: 1; }
           100% { transform: translate(var(--fx), calc(var(--fy) + 70px)) scale(0.9) rotate(360deg); opacity: 0; }
         }
 
         @keyframes photoFragranceBloom {
-          0% { filter: brightness(1.4) contrast(1.1) saturate(1.4) drop-shadow(0 0 35px rgba(244,63,94,0.7)); transform: scale(1.03); }
-          100% { filter: brightness(1) contrast(1) saturate(1.05) drop-shadow(0 0 10px rgba(0,0,0,0.6)); transform: scale(1); }
+          0% { filter: brightness(1.25) contrast(1.1); transform: scale(1.02); }
+          100% { filter: brightness(1) contrast(1); transform: scale(1); }
         }
 
-        @keyframes radarSweep {
+        @keyframes blastParticleBurst {
+          0% { transform: translate(0, 0) scale(1.2); opacity: 1; }
+          100% { transform: translate(var(--tx), var(--ty)) scale(0.1); opacity: 0; }
+        }
+
+        @keyframes gateGlowPulse {
+          0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px #ef4444); }
+          50% { transform: scale(1.04); filter: drop-shadow(0 0 45px #f59e0b); }
+        }
+
+        @keyframes radarLineScan {
           0% { transform: translateY(-100%); }
-          100% { transform: translateY(1000%); }
+          100% { transform: translateY(400%); }
         }
 
         .anim-plane-fly { animation: dynamicWarplaneRoute 16s ease-in-out infinite alternate; }
         .anim-blood-pulse { animation: pulseBloodRed 2.4s ease-in-out infinite; }
-        .anim-airdrop-bounce { animation: bounceAirdropCrate 1.6s ease-in-out infinite; cursor: pointer; }
+        .anim-airdrop-bounce { animation: bounceAirdropCrate 1.5s ease-in-out infinite; cursor: pointer; }
         .anim-modal-in { animation: popModalIn 0.38s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards; }
         .anim-grenade-fly { animation: lobGrenadeArc 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
-        .anim-fragrant-photo { animation: photoFragranceBloom 0.75s ease-out forwards; }
+        .anim-fragrant-photo { animation: photoFragranceBloom 0.6s ease-out forwards; }
+        .anim-gate-glow { animation: gateGlowPulse 2.2s infinite ease-in-out; }
 
         .tactical-bullet {
           position: fixed;
@@ -265,30 +279,119 @@ export default function App() {
           animation: sniperTracer 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
-        @media (max-width: 900px) {
-          .hero-split-layout { flex-direction: column !important; }
-          .hero-poster-column { max-width: 100% !important; width: 100% !important; }
-          .tactical-modal-frame { padding: 18px 14px !important; max-height: 94vh !important; }
-          .tactical-photo-display { height: 280px !important; }
-          .hud-header-bar { padding: 10px 14px !important; }
+        @media (max-width: 768px) {
+          .hud-header-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 10px 12px !important;
+            gap: 8px !important;
+          }
+          .hud-header-badge-full {
+            width: 100% !important;
+            text-align: center !important;
+            box-sizing: border-box !important;
+            padding: 10px 8px !important;
+            font-size: 11px !important;
+            justify-content: center !important;
+          }
+          .hud-header-btn-full {
+            width: 100% !important;
+            padding: 12px 10px !important;
+            font-size: 12px !important;
+            text-align: center !important;
+            display: block !important;
+            box-sizing: border-box !important;
+          }
+          .hero-split-layout {
+            flex-direction: column !important;
+          }
+          .hero-poster-column {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 8px !important;
+          }
+          .tactical-modal-frame {
+            padding: 16px 12px !important;
+            max-height: 94vh !important;
+          }
+          .tactical-photo-display {
+            height: 290px !important;
+          }
+          .lobby-gate-card {
+            padding: 24px 18px !important;
+            margin: 16px !important;
+          }
         }
       `}</style>
 
-      {/* Controlled Periodic Bullets (1 or 2 at a time) */}
-      <div
-        key={`bullet-1-${bulletWave}`}
-        className="tactical-bullet"
-        style={{ top: '22%', width: '220px', left: 0 }}
-      />
-      {bulletWave % 2 === 0 && (
-        <div
-          key={`bullet-2-${bulletWave}`}
-          className="tactical-bullet"
-          style={{ top: '65%', width: '180px', left: 0, animationDelay: '0.18s' }}
-        />
+      {/* TACTICAL BGMI WARFARE ENTRY GATE */}
+      {!hasEnteredWarzone && (
+        <div style={css.lobbyGateOverlay}>
+          <div style={css.lobbyGateCard} className="lobby-gate-card anim-blood-pulse">
+            <div style={css.gateScopeFrame}>
+              <div style={css.gateCrossH} />
+              <div style={css.gateCrossV} />
+              <div className="anim-gate-glow" style={{ fontSize: '4.8rem', zIndex: 3 }}>
+                🪖
+              </div>
+            </div>
+
+            <div style={css.gateLogoTag}>BATTLEGROUNDS LIVIK PROTOCOL</div>
+            <h1 style={css.gateTitle}>OPERATION NATASHA 2026</h1>
+            <p style={css.gateSubtitle}>
+              VIP MEDIC PROTOCOL INITIALIZED // SQUAD 4-RECON STANDBY
+            </p>
+
+            <div style={css.gateRosterPreview}>
+              <span>#1 SULTHAN</span>
+              <span>●</span>
+              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>#2 NATASHAAA</span>
+              <span>●</span>
+              <span>#3 DRACULA</span>
+              <span>●</span>
+              <span>#4 ACE SICARIO</span>
+            </div>
+
+            <button
+              onClick={handleDeployToBattle}
+              style={css.deployActionBtn}
+              className="anim-airdrop-bounce"
+            >
+              <span style={{ fontSize: '1.2rem' }}>⚔️</span> ENTER THE BATTLEFIELD // DEPLOY SQUAD
+            </button>
+            <div style={css.gateAudioHint}>
+              [ LIVIK AMBIENT WARFARE & bg.mp3 WILL ENGAGE AT 100% COMBAT VOLUME ]
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Autonomous Roaming Stealth Warplane */}
+      {/* Floating Tactical Bullet Tracers Across All Zones */}
+      {hasEnteredWarzone && (
+        <>
+          <div
+            key={`bullet-1-${bulletWave}`}
+            className="tactical-bullet"
+            style={{ top: '18%', width: '260px', left: 0 }}
+          />
+          {bulletWave % 2 === 0 && (
+            <div
+              key={`bullet-2-${bulletWave}`}
+              className="tactical-bullet"
+              style={{ top: '55%', width: '220px', left: 0, animationDelay: '0.12s' }}
+            />
+          )}
+          {bulletWave % 3 === 0 && (
+            <div
+              key={`bullet-3-${bulletWave}`}
+              className="tactical-bullet"
+              style={{ top: '82%', width: '280px', left: 0, animationDelay: '0.24s' }}
+            />
+          )}
+        </>
+      )}
+
+      {/* Stealth Warplane Patrol */}
       <div style={css.airspaceOverlay}>
         <div className="anim-plane-fly" style={css.roamingBomberRig}>
           <svg width="68" height="68" viewBox="0 0 24 24" fill="#1c1917" stroke="#ef4444" strokeWidth="1.5">
@@ -302,21 +405,21 @@ export default function App() {
         </div>
       </div>
 
-      {/* Grenade Interactive Flight Path */}
+      {/* Airborne Grenade */}
       {grenadeAirborne && (
         <div style={css.grenadeFlightLayer}>
-          <div className="anim-grenade-fly" style={{ fontSize: '3.6rem', filter: 'drop-shadow(0 0 12px #f59e0b)' }}>
+          <div className="anim-grenade-fly" style={{ fontSize: '3.6rem', filter: 'drop-shadow(0 0 14px #f59e0b)' }}>
             💣
           </div>
         </div>
       )}
 
-      {/* High-Impact Fragrance & Petal Blast */}
+      {/* Fragrance Blast */}
       {grenadeBurst && (
         <div style={css.flowerBurstLayer}>
           <div style={css.shockwaveRing} />
-          {[...Array(26)].map((_, i) => {
-            const angle = (i / 26) * 360;
+          {[...Array(24)].map((_, i) => {
+            const angle = (i / 24) * 360;
             const dist = 160 + (i % 6) * 38;
             const fx = `${Math.cos((angle * Math.PI) / 180) * dist}px`;
             const fy = `${Math.sin((angle * Math.PI) / 180) * dist}px`;
@@ -337,28 +440,30 @@ export default function App() {
         </div>
       )}
 
-      {/* Header HUD */}
+      {/* Responsive HUD Header Bar */}
       <header style={css.hudHeader} className="hud-header-bar">
-        <div style={css.hudLeft}>
+        <div style={css.hudLeft} className="hud-header-badge-full">
           <span style={css.hazardBadge}>⚠️ BGMI LIVIK // MIDSTEIN PROTOCOL</span>
           <span style={css.hudCoords}>GRID REF: 21:30 - 00:00 IST</span>
         </div>
 
-        <div style={css.hudRight}>
-          <button onClick={handleThrowGrenade} style={css.grenadeActionBtn}>
+        <div style={css.hudRight} className="hud-header-btn-full">
+          <button onClick={handleThrowGrenade} style={css.grenadeActionBtn} className="hud-header-btn-full">
             💣 THROW FRAGRANCE GRENADE
           </button>
-          <div style={css.hudStatus}>
-            <span style={css.bloodDot}>●</span> SQUAD 4/4 HOT DEPLOYED
-          </div>
         </div>
       </header>
+
+      {/* Celebratory Banner */}
+      <div style={css.celebrationHeaderRibbon}>
+        <span>🎂 HAPPY BIRTHDAY NATASHAAA! THE QUEEN OF COMBAT RESCUES 🌸</span>
+      </div>
 
       {/* Hero Poster Showcase */}
       <section style={css.heroSection}>
         <div style={css.heroFrameWrapper} className="anim-blood-pulse">
           <div className="hero-split-layout" style={css.heroSplitLayout}>
-            {/* Poster Column */}
+            {/* Squad Poster Column */}
             <div className="hero-poster-column" style={css.posterColumn}>
               <div style={css.posterContainer}>
                 <div style={css.crosshairScope}>
@@ -368,6 +473,22 @@ export default function App() {
                   <span style={css.scopeCornerTR} />
                   <span style={css.scopeCornerBL} />
                   <span style={css.scopeCornerBR} />
+                </div>
+
+                {/* Squad Photo Badges */}
+                <div style={css.squadTagsOverlay}>
+                  <div style={{ ...css.memberPhotoBadge, left: '6%', bottom: '26%', borderColor: '#f59e0b', color: '#f59e0b' }}>
+                    #1 SULTHAN
+                  </div>
+                  <div style={{ ...css.memberPhotoBadge, left: '32%', top: '22%', borderColor: '#ef4444', color: '#fca5a5', backgroundColor: 'rgba(127, 29, 29, 0.9)' }}>
+                    🎂 #2 NATASHAAA (MEDIC)
+                  </div>
+                  <div style={{ ...css.memberPhotoBadge, right: '30%', bottom: '28%', borderColor: '#a855f7', color: '#c084fc' }}>
+                    #3 DRACULA
+                  </div>
+                  <div style={{ ...css.memberPhotoBadge, right: '6%', bottom: '22%', borderColor: '#3b82f6', color: '#60a5fa' }}>
+                    #4 ACE SICARIO
+                  </div>
                 </div>
 
                 <img
@@ -397,7 +518,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Mission Briefing HUD Dossier */}
+            {/* Mission Dossier HUD */}
             <div style={css.dossierColumn}>
               <div style={css.dossierBadge}>CLASSIFIED DOSSIER // DECLASSIFIED</div>
               <h2 style={css.dossierTitle}>OPERATION MIDSTEIN DAWN</h2>
@@ -410,20 +531,20 @@ export default function App() {
 
               <div style={css.dossierRosterList}>
                 <div style={css.dossierMember}>
-                  <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>SULTHAN:</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>#1 SULTHAN:</span>
                   <span style={{ color: '#a8a29e', fontSize: '12px' }}> Frontline Heavy Breacher (Far Left)</span>
                 </div>
                 <div style={css.dossierMember}>
-                  <span style={{ color: '#ef4444', fontWeight: 'bold' }}>NATASHAAA:</span>
+                  <span style={{ color: '#ef4444', fontWeight: 'bold' }}>#2 NATASHAAA:</span>
                   <span style={{ color: '#fca5a5', fontSize: '12px' }}> Combat Surgeon & Recall Specialist (Center)</span>
                 </div>
                 <div style={css.dossierMember}>
-                  <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>ACE SICARIO:</span>
-                  <span style={{ color: '#a8a29e', fontSize: '12px' }}> Marksman & Perimeter Watch (Center Right)</span>
+                  <span style={{ color: '#c084fc', fontWeight: 'bold' }}>#3 DRACULA:</span>
+                  <span style={{ color: '#a8a29e', fontSize: '12px' }}> Reconnaissance Scout / UK Fog (Center Right)</span>
                 </div>
                 <div style={css.dossierMember}>
-                  <span style={{ color: '#c084fc', fontWeight: 'bold' }}>DRACULA:</span>
-                  <span style={{ color: '#a8a29e', fontSize: '12px' }}> Reconnaissance Scout / UK Fog (Far Right)</span>
+                  <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>#4 ACE SICARIO:</span>
+                  <span style={{ color: '#a8a29e', fontSize: '12px' }}> Marksman & Perimeter Watch (Far Right)</span>
                 </div>
               </div>
 
@@ -442,19 +563,19 @@ export default function App() {
         </div>
       </section>
 
-      {/* Interactive Birthday Air-Drop Crate */}
+      {/* Birthday Air-Drop Crate */}
       <section style={css.crateCentralSection}>
         <div className="anim-airdrop-bounce" onClick={handleOpenAirdrop} style={css.jumpingBoxCard}>
           <div style={css.jumpingBoxTopTag}>🚨 INCOMING BIRTHDAY AIR-DROP 🚨</div>
           <div style={{ fontSize: '4.8rem', margin: '4px 0' }}>🎁</div>
           <div style={css.touchCalloutText}>TOUCH TO OPEN AIRDROP!</div>
-          <div style={css.touchSubtext}>SWITCHES AUDIO TO BDAY TRACK & CRACKS THE VAULT</div>
+          <div style={css.touchSubtext}>PAUSES BG.MP3 & CRACKS BDAY ARCHIVE</div>
         </div>
       </section>
 
       {/* Primary Warzone Layout */}
       <main style={css.mainContainer}>
-        {/* Frag Detonation Banner */}
+        {/* Claymore Detonation Banner */}
         <div style={css.fragSection}>
           {!isDetonated ? (
             <div style={css.liveFragBox}>
@@ -551,38 +672,10 @@ export default function App() {
             </button>
           </div>
 
-          {/* Ace Sicario */}
-          <div style={{ ...css.soldierCard, borderTop: '4px solid #3b82f6' }}>
-            <div style={css.cardStatusRow}>
-              <span style={{ color: '#60a5fa', fontWeight: '900' }}>#03 SHADOW SNIPER</span>
-              <span style={{ color: '#22c55e', fontWeight: 'bold' }}>📶 34ms</span>
-            </div>
-
-            <div style={css.tacticalInsigniaBox}>
-              <div style={{ ...css.insigniaRing, borderColor: '#3b82f6' }}>
-                <span style={{ fontSize: '2.5rem' }}>🎯</span>
-              </div>
-            </div>
-
-            <h2 style={{ ...css.fighterName, color: '#60a5fa' }}>ACE SICARIO</h2>
-            <div style={css.fighterRole}>Long-Range Cold Reaper</div>
-            <div style={css.fighterLoc}>📍 Kerala High Ground 🇮🇳</div>
-
-            <div style={css.combatLog}>
-              <div style={{ color: '#60a5fa', fontWeight: 'bold' }}>TACTICAL: 8x SCOPED BOLT-ACTION</div>
-              <div style={css.combatGear}>🎒 Gear: 1x Med Kit, 2x Smoke Screens</div>
-              <div style={css.combatQuote}>"Three rounds, three clean hits across the river. Sector cleared."</div>
-            </div>
-
-            <div style={{ ...css.soldierStatusBadge, color: '#93c5fd', borderColor: '#3b82f6' }}>
-              ● SCOPE ZEROED / FIRING
-            </div>
-          </div>
-
           {/* Dracula */}
           <div style={{ ...css.soldierCard, borderTop: '4px solid #a855f7' }}>
             <div style={css.cardStatusRow}>
-              <span style={{ color: '#c084fc', fontWeight: '900' }}>#04 GHOST OPERATIVE</span>
+              <span style={{ color: '#c084fc', fontWeight: '900' }}>#03 GHOST OPERATIVE</span>
               <span style={{ color: '#ef4444', fontWeight: 'bold' }}>📶 999ms ⚠️</span>
             </div>
 
@@ -614,9 +707,37 @@ export default function App() {
               {draculaRevived ? '● PARACHUTING BACK IN' : '● SIGNAL DROPPED'}
             </div>
           </div>
+
+          {/* Ace Sicario */}
+          <div style={{ ...css.soldierCard, borderTop: '4px solid #3b82f6' }}>
+            <div style={css.cardStatusRow}>
+              <span style={{ color: '#60a5fa', fontWeight: '900' }}>#04 SHADOW SNIPER</span>
+              <span style={{ color: '#22c55e', fontWeight: 'bold' }}>📶 34ms</span>
+            </div>
+
+            <div style={css.tacticalInsigniaBox}>
+              <div style={{ ...css.insigniaRing, borderColor: '#3b82f6' }}>
+                <span style={{ fontSize: '2.5rem' }}>🎯</span>
+              </div>
+            </div>
+
+            <h2 style={{ ...css.fighterName, color: '#60a5fa' }}>ACE SICARIO</h2>
+            <div style={css.fighterRole}>Long-Range Cold Reaper</div>
+            <div style={css.fighterLoc}>📍 Kerala High Ground 🇮🇳</div>
+
+            <div style={css.combatLog}>
+              <div style={{ color: '#60a5fa', fontWeight: 'bold' }}>TACTICAL: 8x SCOPED BOLT-ACTION</div>
+              <div style={css.combatGear}>🎒 Gear: 1x Med Kit, 2x Smoke Screens</div>
+              <div style={css.combatQuote}>"Three rounds, three clean hits across the river. Sector cleared."</div>
+            </div>
+
+            <div style={{ ...css.soldierStatusBadge, color: '#93c5fd', borderColor: '#3b82f6' }}>
+              ● SCOPE ZEROED / FIRING
+            </div>
+          </div>
         </div>
 
-        {/* Midstein Recall Tower */}
+        {/* Midstein Recall Terminal */}
         <section style={css.towerCommandBox}>
           <div style={css.towerHeader}>MIDSTEIN EMERGENCY RECALL TERMINAL</div>
           <div style={css.towerDesc}>
@@ -646,7 +767,7 @@ export default function App() {
         </section>
       </main>
 
-      {/* Autonomous Next-Gen Birthday Vault Modal */}
+      {/* Birthday Vault Modal */}
       {isGiftModalOpen && (
         <div style={css.modalBackdrop} onClick={handleCloseModal}>
           <div
@@ -654,7 +775,7 @@ export default function App() {
             style={css.modalContainer}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Blasting Shrapnel & Confetti Particles */}
+            {/* Confetti Particles */}
             <div key={blastKey} style={css.blastParticleWrapper}>
               {[...Array(24)].map((_, i) => {
                 const angle = (i / 24) * 360;
@@ -668,7 +789,7 @@ export default function App() {
                       ...css.particleItem,
                       '--tx': tx,
                       '--ty': ty,
-                      backgroundColor: ['#ef4444', '#f59e0b', '#ec4899', '#3b82f6', '#10b981'][i % 5],
+                      backgroundColor: ['#ef4444', '#f59e0b', '#f43f5e', '#fbbf24', '#e11d48'][i % 5],
                     }}
                   />
                 );
@@ -692,12 +813,9 @@ export default function App() {
               </button>
             </div>
 
-            {/* Fragrant Photographic Showcase Display */}
+            {/* Photographic Showcase Display */}
             <div style={css.gallerySection}>
               <div className="tactical-photo-display" style={css.mainPhotoFrame}>
-                {/* Radar Grid Line Sweep */}
-                <div style={css.radarLine} />
-
                 <img
                   key={activePhotoIdx}
                   src={gallery[activePhotoIdx].src}
@@ -735,12 +853,19 @@ export default function App() {
               </div>
             </div>
 
-            {/* Teammate Placards */}
+            {/* Squad Congratulations Placards */}
             <div style={css.placardsGrid}>
               <div style={{ ...css.placardCard, borderLeft: '4px solid #f59e0b' }}>
                 <div style={css.placardSender}>⚔️ TRANSMISSION: SULTHAN</div>
                 <div style={css.placardBody}>
                   "Happy Birthday Natasha! While we hold down the frontline and breach compounds, you're the one holding our lives together. The squad is incomplete without our master reviver!"
+                </div>
+              </div>
+
+              <div style={{ ...css.placardCard, borderLeft: '4px solid #a855f7' }}>
+                <div style={css.placardSender}>🧛 TRANSMISSION: DRACULA</div>
+                <div style={css.placardBody}>
+                  "Happy Birthday! Even with 999ms ping from 5,000 miles away in the UK, your revives reach me every time. Thank you for never giving up on our team. Winner Winner Chicken Dinner!"
                 </div>
               </div>
 
@@ -751,15 +876,15 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ ...css.placardCard, borderLeft: '4px solid #a855f7' }}>
-                <div style={css.placardSender}>🧛 TRANSMISSION: DRACULA</div>
+              <div style={{ ...css.placardCard, borderLeft: '4px solid #ef4444' }}>
+                <div style={css.placardSender}>🎂 BGMI LIVIK COMMAND // HEADQUARTERS</div>
                 <div style={css.placardBody}>
-                  "Happy Birthday! Even with 999ms ping from 5,000 miles away in the UK, your revives reach me every time. Thank you for never giving up on our team. Winner Winner Chicken Dinner!"
+                  "COMMAND NOTICE: Today the red zone is cleared and fireworks replace the artillery. A salute of 100 flare guns for Natashaaa's Birthday! Stay victorious!"
                 </div>
               </div>
             </div>
 
-            {/* Tactical Celebration Footnote */}
+            {/* Celebration Footnote */}
             <div style={css.modalFootnote}>
               <span>🎂 LEVEL 3 CHOCOLATE CAKE PACK DEPLOYED</span>
               <span>🌸 FLOWER BUFFER: 100% HEALTH</span>
@@ -769,13 +894,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Warzone Footer */}
+      {/* Footer */}
       <footer style={css.warFooter}>
         <div style={{ color: '#ef4444', fontWeight: 'bold' }}>
           ⚔️ LIVIK SURVIVAL CONTRACT: WINNER WINNER CHICKEN DINNER GUARANTEED
         </div>
         <div>
-          War Squad: <strong>Sulthan</strong>, <strong>Natasha</strong>, <strong>Ace Sicario</strong> & <strong>Dracula</strong>
+          War Squad: <strong>Sulthan</strong>, <strong>Natasha</strong>, <strong>Dracula</strong> & <strong>Ace Sicario</strong>
         </div>
       </footer>
     </div>
@@ -798,6 +923,105 @@ const css = {
     position: 'relative',
     overflowX: 'hidden',
     paddingBottom: '40px',
+  },
+  lobbyGateOverlay: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 9999,
+    backgroundColor: 'rgba(5, 5, 7, 0.94)',
+    backdropFilter: 'blur(12px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+  },
+  lobbyGateCard: {
+    backgroundColor: '#0d0909',
+    border: '2px solid #ef4444',
+    borderRadius: '12px',
+    padding: '36px 28px',
+    maxWidth: '560px',
+    width: '100%',
+    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    boxShadow: '0 0 50px rgba(220, 38, 38, 0.5)',
+  },
+  gateScopeFrame: {
+    position: 'relative',
+    width: '130px',
+    height: '130px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px solid #f59e0b',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(28, 10, 10, 0.7)',
+    marginBottom: '20px',
+    boxShadow: '0 0 25px rgba(245, 158, 11, 0.4)',
+  },
+  gateCrossH: {
+    position: 'absolute',
+    width: '100%',
+    height: '1px',
+    backgroundColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  gateCrossV: {
+    position: 'absolute',
+    height: '100%',
+    width: '1px',
+    backgroundColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  gateLogoTag: {
+    color: '#f59e0b',
+    fontSize: '11px',
+    fontWeight: '900',
+    letterSpacing: '3px',
+    marginBottom: '6px',
+  },
+  gateTitle: {
+    fontSize: 'clamp(1.5rem, 3.2vw, 2.2rem)',
+    fontWeight: '900',
+    color: '#fca5a5',
+    margin: '0 0 8px 0',
+    letterSpacing: '1.5px',
+  },
+  gateSubtitle: {
+    fontSize: '11px',
+    color: '#a8a29e',
+    letterSpacing: '1px',
+    margin: '0 0 16px 0',
+  },
+  gateRosterPreview: {
+    display: 'flex',
+    gap: '8px',
+    fontSize: '11px',
+    color: '#78716c',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  deployActionBtn: {
+    backgroundColor: '#991b1b',
+    border: '2px solid #ef4444',
+    color: '#fef08a',
+    padding: '16px 28px',
+    fontSize: '14px',
+    fontWeight: '900',
+    letterSpacing: '2px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    boxShadow: '0 0 25px rgba(239, 68, 68, 0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  gateAudioHint: {
+    fontSize: '10px',
+    color: '#78716c',
+    marginTop: '16px',
+    letterSpacing: '1px',
   },
   airspaceOverlay: {
     position: 'fixed',
@@ -868,34 +1092,42 @@ const css = {
     backgroundColor: 'rgba(12, 10, 10, 0.95)',
     borderBottom: '2px solid rgba(185, 28, 28, 0.4)',
     backdropFilter: 'blur(8px)',
-    flexWrap: 'wrap',
-    gap: '10px',
+    gap: '12px',
+    boxSizing: 'border-box',
   },
   hudLeft: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   hazardBadge: {
     backgroundColor: '#7f1d1d',
     color: '#fecaca',
-    padding: '3px 8px',
+    padding: '6px 12px',
     fontSize: '11px',
     fontWeight: '900',
     border: '1px solid #ef4444',
     letterSpacing: '1px',
   },
   hudCoords: { fontSize: '11px', color: '#78716c', letterSpacing: '1px' },
-  hudRight: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  hudRight: { display: 'flex', alignItems: 'center', gap: '10px' },
   grenadeActionBtn: {
     backgroundColor: '#7f1d1d',
     border: '1px solid #ef4444',
     color: '#fef08a',
-    padding: '7px 14px',
+    padding: '8px 16px',
     fontSize: '11px',
     fontWeight: '900',
     cursor: 'pointer',
     letterSpacing: '1px',
     boxShadow: '0 0 14px rgba(239, 68, 68, 0.5)',
   },
-  hudStatus: { fontSize: '11px', color: '#a8a29e' },
-  bloodDot: { color: '#ef4444', marginRight: '4px' },
+  celebrationHeaderRibbon: {
+    backgroundColor: '#991b1b',
+    borderBottom: '1px solid #ef4444',
+    color: '#fef08a',
+    textAlign: 'center',
+    padding: '8px 12px',
+    fontSize: '12px',
+    fontWeight: '900',
+    letterSpacing: '1px',
+  },
 
   heroSection: {
     maxWidth: '1180px',
@@ -946,6 +1178,23 @@ const css = {
     maxHeight: '680px',
     objectFit: 'contain',
     display: 'block',
+  },
+  squadTagsOverlay: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 8,
+    pointerEvents: 'none',
+  },
+  memberPhotoBadge: {
+    position: 'absolute',
+    backgroundColor: 'rgba(10, 8, 8, 0.88)',
+    border: '1px solid',
+    borderRadius: '4px',
+    padding: '4px 8px',
+    fontSize: '10px',
+    fontWeight: '900',
+    letterSpacing: '1px',
+    boxShadow: '0 0 10px rgba(0,0,0,0.8)',
   },
   crosshairScope: {
     position: 'absolute',
@@ -1282,14 +1531,15 @@ const css = {
     top: '30%',
     left: '50%',
     pointerEvents: 'none',
-    zIndex: 20,
+    zIndex: 2,
   },
   particleItem: {
     position: 'absolute',
-    width: '8px',
-    height: '8px',
+    width: '7px',
+    height: '7px',
     borderRadius: '50%',
     animation: 'blastParticleBurst 0.9s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
+    pointerEvents: 'none',
   },
   modalHeader: {
     display: 'flex',
@@ -1338,7 +1588,7 @@ const css = {
     position: 'relative',
     maxWidth: '460px',
     width: '100%',
-    height: '400px',
+    height: '380px',
     backgroundColor: '#171212',
     border: '2px solid #ef4444',
     borderRadius: '6px',
@@ -1347,18 +1597,6 @@ const css = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  radarLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '3px',
-    backgroundColor: 'rgba(239, 68, 68, 0.45)',
-    boxShadow: '0 0 12px #ef4444',
-    animation: 'radarSweep 3.2s linear infinite',
-    zIndex: 6,
-    pointerEvents: 'none',
   },
   activeDisplayImg: {
     width: '100%',
